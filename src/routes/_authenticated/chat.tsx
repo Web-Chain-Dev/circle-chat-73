@@ -7,6 +7,8 @@ import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { type Conversation, type Message, type Profile } from "@/lib/chat";
 import { cn } from "@/lib/utils";
+import { useCall } from "@/hooks/use-call";
+import { CallOverlay } from "@/components/chat/CallOverlay";
 
 export const Route = createFileRoute("/_authenticated/chat")({
   head: () => ({
@@ -15,6 +17,8 @@ export const Route = createFileRoute("/_authenticated/chat")({
       { name: "description", content: "Your conversations on Courier." },
       { property: "og:title", content: "Chats — Courier" },
       { property: "og:description", content: "Your conversations on Courier." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ChatPage,
@@ -29,6 +33,7 @@ type Row = {
 function ChatPage() {
   const { user } = Route.useRouteContext();
   const meId = user.id;
+  const calls = useCall(meId);
   const [me, setMe] = useState<Profile | null>(null);
   const [convs, setConvs] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -129,7 +134,7 @@ function ChatPage() {
         <Sidebar me={me} meId={meId} conversations={convs} activeId={activeId} onSelect={setActiveId} onStartChat={startChat} />
       </div>
       {active ? (
-        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} />
+        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} onCall={(kind) => void calls.start(active, kind)} callDisabled={!calls.ready || Boolean(calls.call)} />
       ) : (
         <div className="hidden flex-1 items-center justify-center chat-bg md:flex">
           <div className="flex items-center gap-2 rounded-full bg-background/60 px-4 py-1.5 text-sm">
@@ -137,6 +142,7 @@ function ChatPage() {
           </div>
         </div>
       )}
+      {calls.call && <CallOverlay controls={calls} />}
     </div>
   );
 }
