@@ -14,6 +14,8 @@ export const Route = createFileRoute("/auth")({
       { name: "description", content: "Sign in to Courier to start messaging." },
       { property: "og:title", content: "Sign in — Courier" },
       { property: "og:description", content: "Sign in to Courier to start messaging." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: AuthPage,

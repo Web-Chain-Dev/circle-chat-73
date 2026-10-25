@@ -14,6 +14,61 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_signals: {
+        Row: {
+          call_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          call_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          call_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          recipient_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_signals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_signals_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_signals_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_members: {
         Row: {
           conversation_id: string

@@ -7,6 +7,8 @@ export const Route = createFileRoute("/")({
       { name: "description", content: "Real-time chats with voice and round video messages." },
       { property: "og:title", content: "Courier — Messenger" },
       { property: "og:description", content: "Real-time chats with voice and round video messages." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   beforeLoad: () => {

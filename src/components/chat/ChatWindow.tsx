@@ -1,6 +1,6 @@
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import { ArrowLeft, MoreVertical, Phone, Search, Video } from "lucide-react";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Avatar } from "./Avatar";
 import { MessageBubble } from "./MessageBubble";
 import { Composer } from "./Composer";
@@ -11,6 +11,8 @@ type Props = {
   meId: string;
   messages: Message[];
   onBack: () => void;
+  onCall: (kind: "voice" | "video") => void;
+  callDisabled: boolean;
   onText: (t: string) => Promise<void>;
   onMedia: (kind: "voice" | "video", blob: Blob, duration: number, mime: string) => Promise<void>;
 };
@@ -24,7 +26,7 @@ function dayLabel(iso: string) {
   return d.toLocaleDateString([], { month: "long", day: "numeric" });
 }
 
-export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia }: Props) {
+export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onCall, callDisabled }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const self = conv.peer.id === meId;
   const name = self ? "Saved Messages" : conv.peer.display_name;
@@ -33,10 +35,6 @@ export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia }: Pr
     const el = scroller.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, conv.id]);
-
-  useEffect(() => {}, []);
-
-  const soon = (what: string) => toast(`${what} are coming soon`);
 
   let lastDay = "";
   return (
@@ -52,12 +50,12 @@ export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia }: Pr
         </div>
         {!self && (
           <>
-            <button onClick={() => soon("Voice calls")} title="Voice call" className="rounded-full p-2.5 text-muted-foreground hover:bg-accent hover:text-foreground">
+            <Button variant="ghost" size="icon" disabled={callDisabled} onClick={() => onCall("voice")} aria-label="Voice call" title="Voice call" className="rounded-full text-muted-foreground hover:text-foreground">
               <Phone className="h-5 w-5" />
-            </button>
-            <button onClick={() => soon("Video calls")} title="Video call" className="rounded-full p-2.5 text-muted-foreground hover:bg-accent hover:text-foreground">
+            </Button>
+            <Button variant="ghost" size="icon" disabled={callDisabled} onClick={() => onCall("video")} aria-label="Video call" title="Video call" className="rounded-full text-muted-foreground hover:text-foreground">
               <Video className="h-5 w-5" />
-            </button>
+            </Button>
           </>
         )}
         <button className="hidden rounded-full p-2.5 text-muted-foreground hover:bg-accent sm:block"><Search className="h-5 w-5" /></button>

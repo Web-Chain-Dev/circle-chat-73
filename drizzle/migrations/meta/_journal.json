@@ -15,6 +15,13 @@
       "when": 1792881787808,
       "tag": "0001_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792888531112,
+      "tag": "0002_add_private_call_signaling",
+      "breakpoints": true
     }
   ]
 }
