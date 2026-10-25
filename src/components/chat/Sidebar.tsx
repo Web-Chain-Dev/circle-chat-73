@@ -23,7 +23,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
   const searching = q.trim().length > 0;
 
   useEffect(() => {
-    if (!searching) return setResults([]);
+    if (!searching) { setResults([]); return; }
     const t = setTimeout(async () => {
       const term = q.trim().replace(/[%,]/g, "");
       const { data } = await supabase

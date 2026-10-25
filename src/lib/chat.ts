@@ -16,7 +16,7 @@ export type Conversation = {
   id: string;
   last_message_at: string;
   peer: Profile;
-  last?: Message;
+  last?: Message | undefined;
 };
 
 export function formatTime(iso: string) {

@@ -68,7 +68,7 @@ function ChatPage() {
   }, [meId, loadConvs]);
 
   useEffect(() => {
-    if (!activeId) return setMessages([]);
+    if (!activeId) { setMessages([]); return; }
     supabase.from("messages").select("*").eq("conversation_id", activeId)
       .order("created_at", { ascending: true }).limit(500)
       .then(({ data }) => { if (activeRef.current === activeId) setMessages((data ?? []) as Message[]); });
@@ -112,7 +112,7 @@ function ChatPage() {
     if (!activeId) return;
     const ext = mime.includes("mp4") ? (kind === "voice" ? "m4a" : "mp4") : mime.includes("ogg") ? "ogg" : "webm";
     const path = `${activeId}/${crypto.randomUUID()}.${ext}`;
-    const up = await supabase.storage.from("media").upload(path, blob, { contentType: mime.split(";")[0] });
+    const up = await supabase.storage.from("media").upload(path, blob, { contentType: mime.split(";")[0] ?? mime });
     if (up.error) throw up.error;
     const { data, error } = await supabase.from("messages")
       .insert({ conversation_id: activeId, sender_id: meId, kind, media_path: path, duration: Math.round(duration * 10) / 10 })
