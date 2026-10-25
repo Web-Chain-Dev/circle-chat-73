@@ -95,7 +95,7 @@ function ChatPage() {
 
   async function startChat(userId: string) {
     const { data, error } = await supabase.rpc("get_or_create_dm", { _other: userId });
-    if (error) return toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
     await loadConvs();
     setActiveId(data as string);
   }
