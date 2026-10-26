@@ -157,7 +157,7 @@ export function useCall(meId: string) {
     }
     if (current.current?.id !== s.call_id || current.current.peer.id !== s.sender_id) return;
     if (s.kind === "answer" && pc.current && pc.current.signalingState === "have-local-offer") {
-      await pc.current.setRemoteDescription(s.payload as RTCSessionDescriptionInit);
+      await pc.current.setRemoteDescription(s.payload as unknown as RTCSessionDescriptionInit);
       await flush(s.call_id, pc.current);
       patch({ phase: "connecting" }); armTimeout(s.call_id, 35000, "Call could not connect");
     } else if (["end", "reject", "busy"].includes(s.kind)) {
