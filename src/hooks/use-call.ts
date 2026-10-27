@@ -9,7 +9,7 @@ type Signal = Tables<"call_signals">;
 /** Every signal payload names the sending tab and, once known, the receiving tab. */
 type Envelope = {
   from?: string; to?: string | null; kind?: string; answeredBy?: string;
-  description?: RTCSessionDescriptionInit; candidate?: RTCIceCandidateInit;
+  description?: RTCSessionDescriptionInit | undefined; candidate?: RTCIceCandidateInit;
 };
 export type CallState = {
   id: string; conversationId: string; peer: Profile; kind: CallKind; phase: CallPhase;
