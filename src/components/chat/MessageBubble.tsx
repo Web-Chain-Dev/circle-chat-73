@@ -47,10 +47,29 @@ function VoiceBody({ m, mine }: { m: Message; mine: boolean }) {
     });
   }, [m.id]);
 
-  const toggle = () => {
+  // Recorded webm files have no duration/cues; streaming them over ranged requests often plays silently.
+  // Download the whole file once and play it from memory instead.
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => () => { if (blobUrl) URL.revokeObjectURL(blobUrl); }, [blobUrl]);
+
+  const toggle = async () => {
     const a = audio.current;
-    if (!a) return;
-    if (a.paused) a.play(); else a.pause();
+    if (!a || !url) return;
+    if (!a.paused) { a.pause(); return; }
+    if (!blobUrl) {
+      setLoading(true);
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const local = URL.createObjectURL(blob);
+        a.src = local;
+        a.load();
+        setBlobUrl(local);
+      } catch { /* fall back to streaming */ }
+      setLoading(false);
+    }
+    a.play().catch(() => {});
   };
 
   return (
