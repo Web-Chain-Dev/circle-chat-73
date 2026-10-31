@@ -16,10 +16,21 @@ export type CallState = {
   local: MediaStream | null; remote: MediaStream | null; startedAt: number | null;
   muted: boolean; cameraOff: boolean;
 };
+// STUN + public community TURN relays for NAT/firewall traversal (zero signup, no card)
 const iceServers: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"] },
   { urls: "stun:stun.cloudflare.com:3478" },
   { urls: "stun:global.stun.twilio.com:3478" },
+  {
+    urls: ["turn:turn.evan-brass.net:3478", "turn:turn.evan-brass.net:3478?transport=tcp"],
+    username: "user",
+    credential: "password",
+  },
+  {
+    urls: ["turn:turn.bettercrewl.ink:3478?transport=udp", "turn:turn.bettercrewl.ink:3478?transport=tcp"],
+    username: "M9DRVaByiujoXeuYAAAG",
+    credential: "TpHR9HQNZ8taxjb3",
+  },
 ];
 
 /** Resolves once ICE gathering finishes (or after `ms`), so the SDP carries most candidates in one message. */
