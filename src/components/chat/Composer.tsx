@@ -7,13 +7,26 @@ import { cn } from "@/lib/utils";
 type Props = {
   onText: (text: string) => Promise<void>;
   onMedia: (kind: "voice" | "video", blob: Blob, duration: number, mime: string) => Promise<void>;
+  onFile: (file: File) => Promise<void>;
 };
 
 const MAX_VIDEO = 60;
 const CANCEL_DX = 90;
 const LOCK_DY = 70;
 
-export function Composer({ onText, onMedia }: Props) {
+export function Composer({ onText, onMedia, onFile }: Props) {
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  async function pickFiles(files: FileList | null) {
+    if (!files?.length) return;
+    setUploading(true);
+    for (const f of Array.from(files)) {
+      if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} is larger than 50 MB`); continue; }
+      try { await onFile(f); } catch (e) { toast.error((e as Error).message); }
+    }
+    setUploading(false);
+    if (fileInput.current) fileInput.current.value = "";
+  }
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"voice" | "video">("voice");
   const [recording, setRecording] = useState(false);
@@ -194,7 +207,8 @@ export function Composer({ onText, onMedia }: Props) {
                 placeholder="Message"
                 className="max-h-40 flex-1 resize-none bg-transparent py-3.5 text-[15px] outline-none placeholder:text-muted-foreground"
               />
-              <button className="rounded-full p-2 text-muted-foreground hover:text-foreground" type="button">
+              <input ref={fileInput} type="file" multiple hidden onChange={(e) => void pickFiles(e.target.files)} />
+              <button onClick={() => fileInput.current?.click()} disabled={uploading} title="Attach photo, video or file" aria-label="Attach" className={cn("rounded-full p-2 text-muted-foreground hover:text-foreground", uploading && "animate-pulse")} type="button">
                 <Paperclip className="h-6 w-6" />
               </button>
             </>

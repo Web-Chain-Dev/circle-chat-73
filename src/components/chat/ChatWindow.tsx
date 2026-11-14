@@ -15,6 +15,7 @@ type Props = {
   callDisabled: boolean;
   onText: (t: string) => Promise<void>;
   onMedia: (kind: "voice" | "video", blob: Blob, duration: number, mime: string) => Promise<void>;
+  onFile: (file: File) => Promise<void>;
 };
 
 function dayLabel(iso: string) {
@@ -26,10 +27,12 @@ function dayLabel(iso: string) {
   return d.toLocaleDateString([], { month: "long", day: "numeric" });
 }
 
-export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onCall, callDisabled }: Props) {
+export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onFile, onCall, callDisabled }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
-  const self = conv.peer.id === meId;
+  const self = !conv.is_group && conv.peer.id === meId;
   const name = self ? "Saved Messages" : conv.peer.display_name;
+  const byId = new Map(conv.members.map((p) => [p.id, p]));
+  const subtitle = self ? "your cloud notes" : conv.is_group ? `${conv.members.length} members` : `@${conv.peer.username}`;
 
   useLayoutEffect(() => {
     const el = scroller.current;
@@ -43,12 +46,12 @@ export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onCa
         <button onClick={onBack} className="rounded-full p-2 text-muted-foreground hover:bg-accent md:hidden">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <Avatar name={name} color={conv.peer.avatar_color} size={40} />
+        <Avatar name={name} color={conv.peer.avatar_color} path={self ? null : conv.peer.avatar_path} size={40} />
         <div className="min-w-0 flex-1">
           <div className="truncate font-medium leading-tight">{name}</div>
-          <div className="truncate text-sm text-muted-foreground">{self ? "your cloud notes" : `@${conv.peer.username}`}</div>
+          <div className="truncate text-sm text-muted-foreground">{subtitle}</div>
         </div>
-        {!self && (
+        {!self && !conv.is_group && (
           <>
             <Button variant="ghost" size="icon" disabled={callDisabled} onClick={() => onCall("voice")} aria-label="Voice call" title="Voice call" className="rounded-full text-muted-foreground hover:text-foreground">
               <Phone className="h-5 w-5" />
@@ -80,14 +83,14 @@ export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onCa
                     <span className="rounded-full bg-background/60 px-3 py-0.5 text-sm font-medium">{day}</span>
                   </div>
                 )}
-                <MessageBubble m={m} mine={m.sender_id === meId} />
+                <MessageBubble m={m} mine={m.sender_id === meId} sender={conv.is_group ? byId.get(m.sender_id) : undefined} />
               </div>
             );
           })}
         </div>
       </div>
 
-      <Composer onText={onText} onMedia={onMedia} />
+      <Composer onText={onText} onMedia={onMedia} onFile={onFile} />
     </section>
   );
 }

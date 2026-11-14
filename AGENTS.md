@@ -15,3 +15,5 @@
 - Direct chats are created only through the `get_or_create_dm` RPC to avoid duplicate conversations.
 - Calls use browser WebRTC with one active call per tab; member-only `call_signals` carry offer/answer/ICE/end events with `from`/`to` tab ids in the payload, because a user may have several tabs open and one tab must never consume another tab's signals. Only signals addressed to this tab are deleted; broadcast ones (offers) expire. SDP is sent after ICE gathering (bounded wait) so most candidates travel in one message. Polling backs up Realtime. Media never passes through chat storage.
 - Call state and media cleanup live in `useCall` at chat-page scope, independent of the selected conversation; `CallOverlay` only renders streams and controls.
+- Group chats are conversations with is_group=true and a title, created only via the `create_group` RPC; calls are DM-only, so call buttons are hidden in groups.
+- Attachments (photos=image, videos=clip, other=file) go to the private `media` bucket like voice notes; profile pictures live in the private `avatars` bucket under `{user_id}/...` and render via signed URLs.

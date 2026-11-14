@@ -1,22 +1,25 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Pause, Play, Volume2, VolumeX } from "lucide-react";
-import { type Message, formatDuration, formatTime, useSignedUrl } from "@/lib/chat";
+import { Check, Download, FileText, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { type Message, type Profile, formatDuration, formatSize, formatTime, useSignedUrl } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
-export function MessageBubble({ m, mine }: { m: Message; mine: boolean }) {
+export function MessageBubble({ m, mine, sender }: { m: Message; mine: boolean; sender?: Profile | undefined }) {
   if (m.kind === "video") return <VideoNote m={m} mine={mine} />;
+  const media = m.kind === "image" || m.kind === "clip";
   return (
     <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
       <div
         className={cn(
-          "relative max-w-[min(75%,480px)] rounded-2xl px-3 py-1.5 shadow-bubble",
+          "relative max-w-[min(75%,480px)] rounded-2xl shadow-bubble",
+          media ? "overflow-hidden p-1" : "px-3 py-1.5",
           mine ? "rounded-br-md bg-bubble-out text-bubble-out-foreground" : "rounded-bl-md bg-bubble-in",
         )}
       >
-        {m.kind === "voice" ? <VoiceBody m={m} mine={mine} /> : (
+        {sender && !mine && <div className={cn("text-sm font-medium text-primary", media && "px-2 pt-1")}>{sender.display_name}</div>}
+        {m.kind === "image" ? <ImageBody m={m} /> : m.kind === "clip" ? <ClipBody m={m} /> : m.kind === "file" ? <FileBody m={m} mine={mine} /> : m.kind === "voice" ? <VoiceBody m={m} mine={mine} /> : (
           <span className="whitespace-pre-wrap break-words text-[15px] leading-snug">{m.body}</span>
         )}
-        <Meta m={m} mine={mine} inline={m.kind === "text"} />
+        {media ? <div className="flex justify-end px-1.5 pb-0.5"><Meta m={m} mine={mine} /></div> : <Meta m={m} mine={mine} inline={m.kind === "text"} />}
       </div>
     </div>
   );
@@ -176,5 +179,36 @@ function VideoNote({ m, mine }: { m: Message; mine: boolean }) {
         </span>
       </div>
     </div>
+  );
+}
+
+function ImageBody({ m }: { m: Message }) {
+  const url = useSignedUrl(m.media_path);
+  if (!url) return <div className="h-48 w-64 animate-pulse rounded-xl bg-muted" />;
+  return (
+    <a href={url} target="_blank" rel="noreferrer">
+      <img src={url} alt={m.file_name ?? "Photo"} className="max-h-[420px] w-full rounded-xl object-cover" />
+    </a>
+  );
+}
+
+function ClipBody({ m }: { m: Message }) {
+  const url = useSignedUrl(m.media_path);
+  if (!url) return <div className="h-48 w-64 animate-pulse rounded-xl bg-muted" />;
+  return <video src={url} controls playsInline preload="metadata" className="max-h-[420px] w-full rounded-xl bg-background" />;
+}
+
+function FileBody({ m, mine }: { m: Message; mine: boolean }) {
+  const url = useSignedUrl(m.media_path);
+  return (
+    <a href={url ?? undefined} target="_blank" rel="noreferrer" download={m.file_name ?? true} className="flex items-center gap-3 py-1 pr-2">
+      <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-full", mine ? "bg-bubble-out-foreground text-bubble-out" : "bg-primary text-primary-foreground")}>
+        {url ? <Download className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+      </span>
+      <span className="min-w-0">
+        <span className="block max-w-[240px] truncate text-[15px] font-medium">{m.file_name ?? "File"}</span>
+        <span className="block text-xs text-bubble-meta">{m.file_size ? formatSize(m.file_size) : ""}</span>
+      </span>
+    </a>
   );
 }

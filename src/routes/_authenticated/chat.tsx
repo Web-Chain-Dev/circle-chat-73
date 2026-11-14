@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Sidebar } from "@/components/chat/Sidebar";
 import { ChatWindow } from "@/components/chat/ChatWindow";
-import { type Conversation, type Message, type Profile } from "@/lib/chat";
+import { type Conversation, type Message, type Profile, PROFILE_COLS } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 import { useCall } from "@/hooks/use-call";
 import { CallOverlay } from "@/components/chat/CallOverlay";
@@ -27,6 +27,8 @@ export const Route = createFileRoute("/_authenticated/chat")({
 type Row = {
   id: string;
   last_message_at: string;
+  is_group: boolean;
+  title: string | null;
   conversation_members: { user_id: string; profiles: Profile | null }[];
 };
 
@@ -44,7 +46,7 @@ function ChatPage() {
   const loadConvs = useCallback(async () => {
     const { data } = await supabase
       .from("conversations")
-      .select("id, last_message_at, conversation_members(user_id, profiles(id, display_name, username, avatar_color))")
+      .select(`id, last_message_at, is_group, title, conversation_members(user_id, profiles(${PROFILE_COLS}))`)
       .order("last_message_at", { ascending: false });
     const rows = (data ?? []) as unknown as Row[];
     const ids = rows.map((r) => r.id);
@@ -57,20 +59,30 @@ function ChatPage() {
     }
     setConvs(rows.map((r) => {
       const other = r.conversation_members.find((x) => x.user_id !== meId) ?? r.conversation_members[0];
+      const members = r.conversation_members.map((x) => x.profiles).filter((p): p is Profile => Boolean(p));
       return {
         id: r.id,
         last_message_at: r.last_message_at,
-        peer: other?.profiles ?? { id: other?.user_id ?? "", display_name: "Unknown", username: null, avatar_color: "blue" },
+        is_group: r.is_group,
+        title: r.title,
+        members,
+        peer: r.is_group
+          ? { id: r.id, display_name: r.title ?? "Group", username: null, avatar_color: "teal", avatar_path: null }
+          : other?.profiles ?? { id: other?.user_id ?? "", display_name: "Unknown", username: null, avatar_color: "blue" },
         last: lasts.get(r.id),
       };
     }));
   }, [meId]);
 
+  const loadMe = useCallback(async () => {
+    const { data } = await supabase.from("profiles").select(PROFILE_COLS).eq("id", meId).single();
+    setMe(data as Profile);
+  }, [meId]);
+
   useEffect(() => {
-    supabase.from("profiles").select("id, display_name, username, avatar_color").eq("id", meId).single()
-      .then(({ data }) => setMe(data as Profile));
+    loadMe();
     loadConvs();
-  }, [meId, loadConvs]);
+  }, [loadMe, loadConvs]);
 
   useEffect(() => {
     if (!activeId) { setMessages([]); return; }
@@ -126,15 +138,39 @@ function ChatPage() {
     addLocal(data as Message);
   }
 
+  async function createGroup(title: string, members: string[]) {
+    const { data, error } = await supabase.rpc("create_group", { _title: title, _members: members });
+    if (error) { toast.error(error.message); return false; }
+    await loadConvs();
+    setActiveId(data as string);
+    return true;
+  }
+
+  async function sendFile(file: File) {
+    if (!activeId) return;
+    const kind = file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "clip" : "file";
+    const safe = file.name.replace(/[^\w.\-]+/g, "_").slice(-80) || "file";
+    const path = `${activeId}/${crypto.randomUUID()}-${safe}`;
+    const up = await supabase.storage.from("media").upload(path, file, { contentType: file.type || "application/octet-stream" });
+    if (up.error) throw up.error;
+    const { data, error } = await supabase.from("messages")
+      .insert({ conversation_id: activeId, sender_id: meId, kind, media_path: path, file_name: file.name, file_size: file.size, mime: file.type || null })
+      .select().single();
+    if (error) throw error;
+    addLocal(data as Message);
+  }
+
+  async function onProfileSaved() { await loadMe(); await loadConvs(); }
+
   const active = convs.find((c) => c.id === activeId) ?? null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <div className={cn("h-full w-full md:block md:w-auto", active ? "hidden" : "block")}>
-        <Sidebar me={me} meId={meId} conversations={convs} activeId={activeId} onSelect={setActiveId} onStartChat={startChat} />
+        <Sidebar me={me} meId={meId} conversations={convs} activeId={activeId} onSelect={setActiveId} onStartChat={startChat} onCreateGroup={createGroup} onProfileSaved={onProfileSaved} />
       </div>
       {active ? (
-        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} onCall={(kind) => void calls.start(active, kind)} callDisabled={!calls.ready || Boolean(calls.call)} />
+        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} onFile={sendFile} onCall={(kind) => void calls.start(active, kind)} callDisabled={!calls.ready || Boolean(calls.call)} />
       ) : (
         <div className="hidden flex-1 items-center justify-center chat-bg md:flex">
           <div className="flex items-center gap-2 rounded-full bg-background/60 px-4 py-1.5 text-sm">

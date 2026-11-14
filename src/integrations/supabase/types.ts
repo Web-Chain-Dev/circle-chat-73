@@ -105,18 +105,27 @@ export type Database = {
       conversations: {
         Row: {
           created_at: string
+          created_by: string | null
           id: string
+          is_group: boolean
           last_message_at: string
+          title: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string
+          title?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string
+          title?: string | null
         }
         Relationships: []
       }
@@ -126,9 +135,12 @@ export type Database = {
           conversation_id: string
           created_at: string
           duration: number | null
+          file_name: string | null
+          file_size: number | null
           id: string
           kind: string
           media_path: string | null
+          mime: string | null
           sender_id: string
         }
         Insert: {
@@ -136,9 +148,12 @@ export type Database = {
           conversation_id: string
           created_at?: string
           duration?: number | null
+          file_name?: string | null
+          file_size?: number | null
           id?: string
           kind?: string
           media_path?: string | null
+          mime?: string | null
           sender_id: string
         }
         Update: {
@@ -146,9 +161,12 @@ export type Database = {
           conversation_id?: string
           created_at?: string
           duration?: number | null
+          file_name?: string | null
+          file_size?: number | null
           id?: string
           kind?: string
           media_path?: string | null
+          mime?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -171,6 +189,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_color: string
+          avatar_path: string | null
           created_at: string
           display_name: string
           id: string
@@ -178,6 +197,7 @@ export type Database = {
         }
         Insert: {
           avatar_color?: string
+          avatar_path?: string | null
           created_at?: string
           display_name?: string
           id: string
@@ -185,6 +205,7 @@ export type Database = {
         }
         Update: {
           avatar_color?: string
+          avatar_path?: string | null
           created_at?: string
           display_name?: string
           id?: string
@@ -197,6 +218,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_group: {
+        Args: { _members: string[]; _title: string }
+        Returns: string
+      }
       get_or_create_dm: { Args: { _other: string }; Returns: string }
       is_member: { Args: { _conv: string }; Returns: boolean }
     }

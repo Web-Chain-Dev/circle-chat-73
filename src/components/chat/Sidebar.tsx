@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Menu, Search, LogOut, ArrowLeft } from "lucide-react";
+import { Menu, Search, LogOut, ArrowLeft, Users, UserPen } from "lucide-react";
+import { NewGroupDialog } from "./NewGroupDialog";
+import { ProfileDialog } from "./ProfileDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar } from "./Avatar";
-import { type Conversation, type Profile, formatListTime, previewText } from "@/lib/chat";
+import { type Conversation, type Profile, PROFILE_COLS, formatListTime, previewText } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -15,9 +17,13 @@ type Props = {
   activeId: string | null;
   onSelect: (id: string) => void;
   onStartChat: (userId: string) => void;
+  onCreateGroup: (title: string, members: string[]) => Promise<boolean>;
+  onProfileSaved: () => Promise<void>;
 };
 
-export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartChat }: Props) {
+export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartChat, onCreateGroup, onProfileSaved }: Props) {
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<Profile[]>([]);
   const searching = q.trim().length > 0;
@@ -28,7 +34,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
       const term = q.trim().replace(/[%,]/g, "");
       const { data } = await supabase
         .from("profiles")
-        .select("id, display_name, username, avatar_color")
+        .select(PROFILE_COLS)
         .or(`display_name.ilike.%${term}%,username.ilike.%${term}%`)
         .limit(20);
       setResults((data ?? []) as Profile[]);
@@ -50,12 +56,19 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56">
               <DropdownMenuLabel className="flex items-center gap-3">
-                {me && <Avatar name={me.display_name} color={me.avatar_color} size={36} />}
+                {me && <Avatar name={me.display_name} color={me.avatar_color} path={me.avatar_path} size={36} />}
                 <div className="min-w-0">
                   <div className="truncate">{me?.display_name}</div>
                   <div className="truncate text-xs font-normal text-muted-foreground">@{me?.username}</div>
                 </div>
               </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setGroupOpen(true)}>
+                <Users className="mr-2 h-4 w-4" /> New group
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setProfileOpen(true)}>
+                <UserPen className="mr-2 h-4 w-4" /> Edit profile
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
                 <LogOut className="mr-2 h-4 w-4" /> Log out
@@ -85,7 +98,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
                 onClick={() => { onStartChat(p.id); setQ(""); }}
                 className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-accent"
               >
-                <Avatar name={p.display_name} color={p.avatar_color} size={48} />
+                <Avatar name={p.display_name} color={p.avatar_color} path={p.avatar_path} size={48} />
                 <div className="min-w-0">
                   <div className="truncate font-medium">{p.id === meId ? "Saved Messages" : p.display_name}</div>
                   <div className="truncate text-sm text-muted-foreground">@{p.username}</div>
@@ -100,7 +113,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
         ) : (
           conversations.map((c) => {
             const active = c.id === activeId;
-            const self = c.peer.id === meId;
+            const self = !c.is_group && c.peer.id === meId;
             return (
               <button
                 key={c.id}
@@ -110,7 +123,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
                   active ? "bg-sidebar-accent text-primary-foreground" : "hover:bg-accent",
                 )}
               >
-                <Avatar name={self ? "Saved Messages" : c.peer.display_name} color={c.peer.avatar_color} />
+                <Avatar name={self ? "Saved Messages" : c.peer.display_name} color={c.peer.avatar_color} path={self ? null : c.peer.avatar_path} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="truncate font-medium">{self ? "Saved Messages" : c.peer.display_name}</span>
@@ -122,6 +135,9 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
                     {c.last && c.last.sender_id === meId && !self && (
                       <span className={active ? "" : "text-foreground"}>You: </span>
                     )}
+                    {c.last && c.is_group && c.last.sender_id !== meId && (
+                      <span className={active ? "" : "text-foreground"}>{c.members.find((p) => p.id === c.last?.sender_id)?.display_name ?? "Someone"}: </span>
+                    )}
                     {previewText(c.last)}
                   </div>
                 </div>
@@ -130,6 +146,8 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
           })
         )}
       </div>
+      <NewGroupDialog open={groupOpen} onOpenChange={setGroupOpen} meId={meId} onCreate={onCreateGroup} />
+      <ProfileDialog open={profileOpen} onOpenChange={setProfileOpen} me={me} onSaved={onProfileSaved} />
     </aside>
   );
 }
