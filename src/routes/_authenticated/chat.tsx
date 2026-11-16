@@ -101,6 +101,11 @@ function ChatPage() {
         }
         loadConvs();
       })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (payload) => {
+        const old = payload.old as { id?: string; conversation_id?: string };
+        if (old.id) setMessages((prev) => prev.filter((x) => x.id !== old.id));
+        loadConvs();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loadConvs]);
@@ -160,6 +165,17 @@ function ChatPage() {
     addLocal(data as Message);
   }
 
+  async function deleteMessage(m: Message) {
+    const { error } = await supabase.from("messages").delete().eq("id", m.id);
+    if (error) { toast.error(error.message); return; }
+    if (m.media_path) {
+      // Best effort: storage policy may not allow deletes; the row is gone either way.
+      await supabase.storage.from("media").remove([m.media_path]).catch(() => {});
+    }
+    setMessages((prev) => prev.filter((x) => x.id !== m.id));
+    loadConvs();
+  }
+
   async function onProfileSaved() { await loadMe(); await loadConvs(); }
 
   const active = convs.find((c) => c.id === activeId) ?? null;
@@ -170,7 +186,7 @@ function ChatPage() {
         <Sidebar me={me} meId={meId} conversations={convs} activeId={activeId} onSelect={setActiveId} onStartChat={startChat} onCreateGroup={createGroup} onProfileSaved={onProfileSaved} />
       </div>
       {active ? (
-        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} onFile={sendFile} onCall={(kind) => void calls.start(active, kind)} callDisabled={!calls.ready || Boolean(calls.call)} />
+        <ChatWindow conv={active} meId={meId} messages={messages} onBack={() => setActiveId(null)} onText={sendText} onMedia={sendMedia} onFile={sendFile} onDelete={deleteMessage} onCall={(kind) => void calls.start(active, kind)} callDisabled={!calls.ready || Boolean(calls.call)} />
       ) : (
         <div className="hidden flex-1 items-center justify-center chat-bg md:flex">
           <div className="flex items-center gap-2 rounded-full bg-background/60 px-4 py-1.5 text-sm">

@@ -1,13 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Download, FileText, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Check, Download, FileText, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
+import { toast } from "sonner";
 import { type Message, type Profile, formatDuration, formatSize, formatTime, useSignedUrl } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
-export function MessageBubble({ m, mine, sender }: { m: Message; mine: boolean; sender?: Profile | undefined }) {
-  if (m.kind === "video") return <VideoNote m={m} mine={mine} />;
+type Props = { m: Message; mine: boolean; sender?: Profile | undefined; onDelete?: (m: Message) => Promise<void> };
+
+function DeleteButton({ m, onDelete }: { m: Message; onDelete: (m: Message) => Promise<void> }) {
+  return (
+    <button
+      type="button"
+      title="Delete message"
+      aria-label="Delete message"
+      onClick={() => { if (window.confirm("Delete this message?")) onDelete(m).catch((e) => toast.error((e as Error).message)); }}
+      className="self-center rounded-full p-1.5 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+    >
+      <Trash2 className="h-4 w-4" />
+    </button>
+  );
+}
+
+export function MessageBubble({ m, mine, sender, onDelete }: Props) {
+  if (m.kind === "video") return <VideoNote m={m} mine={mine} onDelete={onDelete} />;
   const media = m.kind === "image" || m.kind === "clip";
   return (
-    <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex items-center gap-1", mine ? "justify-end" : "justify-start")}>
+      {mine && onDelete && <DeleteButton m={m} onDelete={onDelete} />}
       <div
         className={cn(
           "relative max-w-[min(75%,480px)] rounded-2xl shadow-bubble",
@@ -119,7 +137,7 @@ function VoiceBody({ m, mine }: { m: Message; mine: boolean }) {
   );
 }
 
-function VideoNote({ m, mine }: { m: Message; mine: boolean }) {
+function VideoNote({ m, mine, onDelete }: { m: Message; mine: boolean; onDelete?: (m: Message) => Promise<void> }) {
   const url = useSignedUrl(m.media_path);
   const ref = useRef<HTMLVideoElement>(null);
   const [sound, setSound] = useState(false);
@@ -144,7 +162,8 @@ function VideoNote({ m, mine }: { m: Message; mine: boolean }) {
   const C = 2 * Math.PI * R;
 
   return (
-    <div className={cn("flex", mine ? "justify-end" : "justify-start")}>
+    <div className={cn("group flex items-center gap-1", mine ? "justify-end" : "justify-start")}>
+      {mine && onDelete && <DeleteButton m={m} onDelete={onDelete} />}
       <div className="relative">
         <button onClick={toggle} className="relative block h-60 w-60 overflow-hidden rounded-full bg-muted shadow-bubble">
           {url && (

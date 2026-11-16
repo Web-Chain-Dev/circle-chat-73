@@ -16,6 +16,7 @@ type Props = {
   onText: (t: string) => Promise<void>;
   onMedia: (kind: "voice" | "video", blob: Blob, duration: number, mime: string) => Promise<void>;
   onFile: (file: File) => Promise<void>;
+  onDelete: (m: Message) => Promise<void>;
 };
 
 function dayLabel(iso: string) {
@@ -27,7 +28,7 @@ function dayLabel(iso: string) {
   return d.toLocaleDateString([], { month: "long", day: "numeric" });
 }
 
-export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onFile, onCall, callDisabled }: Props) {
+export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onFile, onDelete, onCall, callDisabled }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const self = !conv.is_group && conv.peer.id === meId;
   const name = self ? "Saved Messages" : conv.peer.display_name;
@@ -83,7 +84,7 @@ export function ChatWindow({ conv, meId, messages, onBack, onText, onMedia, onFi
                     <span className="rounded-full bg-background/60 px-3 py-0.5 text-sm font-medium">{day}</span>
                   </div>
                 )}
-                <MessageBubble m={m} mine={m.sender_id === meId} sender={conv.is_group ? byId.get(m.sender_id) : undefined} />
+                <MessageBubble m={m} mine={m.sender_id === meId} sender={conv.is_group ? byId.get(m.sender_id) : undefined} onDelete={onDelete} />
               </div>
             );
           })}

@@ -29,6 +29,13 @@
       "when": 1794616690248,
       "tag": "0003_groups_files_avatars",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794873537038,
+      "tag": "0004_delete_own_messages",
+      "breakpoints": true
     }
   ]
 }
