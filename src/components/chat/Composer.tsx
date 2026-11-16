@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Lock, Mic, Send, Smile, Paperclip, Trash2, ChevronUp } from "lucide-react";
+import { Camera, Lock, Mic, Send, Smile, Paperclip, Trash2, ChevronUp, X, FileIcon } from "lucide-react";
 import { toast } from "sonner";
-import { formatDuration, pickMime } from "@/lib/chat";
+import { formatDuration, formatSize, pickMime } from "@/lib/chat";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   onText: (text: string) => Promise<void>;
@@ -17,15 +19,35 @@ const LOCK_DY = 70;
 export function Composer({ onText, onMedia, onFile }: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  async function pickFiles(files: FileList | null) {
+  const [pending, setPending] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+
+  // Object URLs for the preview dialog; revoked when it closes.
+  useEffect(() => {
+    const urls = pending.map((f) => URL.createObjectURL(f));
+    setPreviews(urls);
+    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+  }, [pending]);
+
+  function pickFiles(files: FileList | null) {
     if (!files?.length) return;
-    setUploading(true);
+    const ok: File[] = [];
     for (const f of Array.from(files)) {
       if (f.size > 50 * 1024 * 1024) { toast.error(`${f.name} is larger than 50 MB`); continue; }
+      ok.push(f);
+    }
+    if (ok.length) setPending(ok);
+    if (fileInput.current) fileInput.current.value = "";
+  }
+
+  async function sendPending() {
+    const files = pending;
+    setPending([]);
+    setUploading(true);
+    for (const f of files) {
       try { await onFile(f); } catch (e) { toast.error((e as Error).message); }
     }
     setUploading(false);
-    if (fileInput.current) fileInput.current.value = "";
   }
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"voice" | "video">("voice");
@@ -207,7 +229,7 @@ export function Composer({ onText, onMedia, onFile }: Props) {
                 placeholder="Message"
                 className="max-h-40 flex-1 resize-none bg-transparent py-3.5 text-[15px] outline-none placeholder:text-muted-foreground"
               />
-              <input ref={fileInput} type="file" multiple hidden onChange={(e) => void pickFiles(e.target.files)} />
+              <input ref={fileInput} type="file" multiple hidden onChange={(e) => pickFiles(e.target.files)} />
               <button onClick={() => fileInput.current?.click()} disabled={uploading} title="Attach photo, video or file" aria-label="Attach" className={cn("rounded-full p-2 text-muted-foreground hover:text-foreground", uploading && "animate-pulse")} type="button">
                 <Paperclip className="h-6 w-6" />
               </button>
@@ -258,6 +280,47 @@ export function Composer({ onText, onMedia, onFile }: Props) {
           </div>
         )}
       </div>
+
+      <Dialog open={pending.length > 0} onOpenChange={(o) => { if (!o && !uploading) setPending([]); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Send {pending.length === 1 ? "file" : `${pending.length} files`}</DialogTitle></DialogHeader>
+          <div className="max-h-[50vh] space-y-3 overflow-y-auto">
+            {pending.map((f, i) => (
+              <div key={`${f.name}-${i}`} className="relative flex items-center gap-3 rounded-xl bg-muted/50 p-2">
+                {f.type.startsWith("image/") ? (
+                  <img src={previews[i]} alt={f.name} className="max-h-48 w-full rounded-lg object-contain" />
+                ) : f.type.startsWith("video/") ? (
+                  <video src={previews[i]} controls playsInline className="max-h-48 w-full rounded-lg" />
+                ) : (
+                  <>
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                      <FileIcon className="h-5 w-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{f.name}</span>
+                      <span className="text-xs text-muted-foreground">{formatSize(f.size)}</span>
+                    </span>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setPending((p) => p.filter((_, j) => j !== i))}
+                  className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-muted-foreground hover:text-foreground"
+                  aria-label={`Remove ${f.name}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="ghost" onClick={() => setPending([])} disabled={uploading}>Cancel</Button>
+            <Button onClick={() => void sendPending()} disabled={uploading}>
+              <Send className="mr-2 h-4 w-4" /> Send
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
