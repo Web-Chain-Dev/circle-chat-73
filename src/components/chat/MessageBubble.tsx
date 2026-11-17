@@ -137,7 +137,7 @@ function VoiceBody({ m, mine }: { m: Message; mine: boolean }) {
   );
 }
 
-function VideoNote({ m, mine, onDelete }: { m: Message; mine: boolean; onDelete?: (m: Message) => Promise<void> }) {
+function VideoNote({ m, mine, onDelete }: { m: Message; mine: boolean; onDelete?: ((m: Message) => Promise<void>) | undefined }) {
   const url = useSignedUrl(m.media_path);
   const ref = useRef<HTMLVideoElement>(null);
   const [sound, setSound] = useState(false);
