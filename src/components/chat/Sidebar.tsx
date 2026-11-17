@@ -1,3 +1,6 @@
+import { enablePush } from "@/lib/push-client";
+import { toast } from "sonner";
+import { Bell } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Menu, Search, LogOut, ArrowLeft, Users, UserPen } from "lucide-react";
 import { NewGroupDialog } from "./NewGroupDialog";
@@ -70,6 +73,21 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
                 <UserPen className="mr-2 h-4 w-4" /> Edit profile
               </DropdownMenuItem>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={async () => {
+                try {
+                  const r = await enablePush(meId);
+                  const msg = {
+                    enabled: "Notifications are on for this device",
+                    denied: "Notifications are blocked — allow them for this site in your browser settings",
+                    "open-in-new-tab": "Open the app in its own tab to turn on notifications",
+                    "ios-install": "On iPhone: tap Share → Add to Home Screen, open the app from there, then try again",
+                    unsupported: "This browser can't show notifications",
+                  }[r];
+                  (r === "enabled" ? toast.success : toast.error)(msg);
+                } catch (e) { toast.error(e instanceof Error ? e.message : "Couldn't turn on notifications"); }
+              }}>
+                <Bell className="mr-2 h-4 w-4" /> Enable notifications
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => supabase.auth.signOut()}>
                 <LogOut className="mr-2 h-4 w-4" /> Log out
               </DropdownMenuItem>

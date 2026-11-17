@@ -17,3 +17,5 @@
 - Call state and media cleanup live in `useCall` at chat-page scope, independent of the selected conversation; `CallOverlay` only renders streams and controls.
 - Group chats are conversations with is_group=true and a title, created only via the `create_group` RPC; calls are DM-only, so call buttons are hidden in groups.
 - Attachments (photos=image, videos=clip, other=file) go to the private `media` bucket like voice notes; profile pictures live in the private `avatars` bucket under `{user_id}/...` and render via signed URLs.
+
+- Push notifications use self-hosted Web Push (VAPID, @pushforge/builder) sent from the notifyConversation server function after each send; no third-party account needed. public/push-sw.js is a messaging-only worker, not an offline cache.

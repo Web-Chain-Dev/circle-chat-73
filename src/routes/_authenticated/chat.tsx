@@ -1,3 +1,4 @@
+import { notify, refreshPush } from "@/lib/push-client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
@@ -79,6 +80,7 @@ function ChatPage() {
     setMe(data as Profile);
   }, [meId]);
 
+  useEffect(() => { if (meId) refreshPush(meId); }, [meId]);
   useEffect(() => {
     loadMe();
     loadConvs();
@@ -128,6 +130,7 @@ function ChatPage() {
       .insert({ conversation_id: activeId, sender_id: meId, kind: "text", body }).select().single();
     if (error) throw error;
     addLocal(data as Message);
+    notify(activeId, "message", body);
   }
 
   async function sendMedia(kind: "voice" | "video", blob: Blob, duration: number, mime: string) {
@@ -141,6 +144,7 @@ function ChatPage() {
       .select().single();
     if (error) throw error;
     addLocal(data as Message);
+    notify(activeId, "message", kind === "voice" ? "🎤 Voice message" : "📹 Video message");
   }
 
   async function createGroup(title: string, members: string[]) {
@@ -163,6 +167,7 @@ function ChatPage() {
       .select().single();
     if (error) throw error;
     addLocal(data as Message);
+    notify(activeId, "message", kind === "image" ? "📷 Photo" : kind === "clip" ? "🎬 Video" : `📎 ${file.name}`);
   }
 
   async function deleteMessage(m: Message) {

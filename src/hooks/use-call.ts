@@ -1,3 +1,4 @@
+import { notify } from "@/lib/push-client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -152,6 +153,7 @@ export function useCall(meId: string) {
       descriptionSent.current = true;
       // The offer goes to every open tab of the other person; whichever answers becomes the peer device.
       await send(c, "offer", { kind, description: connection.localDescription?.toJSON() }, null);
+      notify(c.conversationId, "call", "", kind === "video");
       patch({ phase: "ringing" }); armTimeout(c.id, 45000, "No answer");
     } catch (error) {
       if (current.current?.id !== c.id) return;
