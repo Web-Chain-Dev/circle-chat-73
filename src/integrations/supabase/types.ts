@@ -251,6 +251,17 @@ export type Database = {
       }
       get_or_create_dm: { Args: { _other: string }; Returns: string }
       is_member: { Args: { _conv: string }; Returns: boolean }
+      search_profiles: {
+        Args: { _term: string }
+        Returns: {
+          avatar_color: string
+          avatar_path: string
+          display_name: string
+          id: string
+          username: string
+        }[]
+      }
+      shares_conversation: { Args: { _other: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

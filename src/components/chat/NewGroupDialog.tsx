@@ -22,10 +22,8 @@ export function NewGroupDialog({ open, onOpenChange, meId, onCreate }: Props) {
     if (!open) return;
     const t = setTimeout(async () => {
       const term = q.trim().replace(/[%,]/g, "");
-      let req = supabase.from("profiles").select(PROFILE_COLS).neq("id", meId).limit(30);
-      if (term) req = req.or(`display_name.ilike.%${term}%,username.ilike.%${term}%`);
-      const { data } = await req;
-      setResults((data ?? []) as Profile[]);
+      const { data } = term.trim().length >= 2 ? await supabase.rpc("search_profiles", { _term: term }) : { data: [] };
+      setResults(((data ?? []) as Profile[]).filter((p) => p.id !== meId));
     }, 200);
     return () => clearTimeout(t);
   }, [q, open, meId]);

@@ -43,6 +43,13 @@
       "when": 1794873820169,
       "tag": "0005_push_subscriptions",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794874028270,
+      "tag": "0006_restrict_profile_and_avatar_reads",
+      "breakpoints": true
     }
   ]
 }

@@ -36,10 +36,7 @@ export function Sidebar({ me, meId, conversations, activeId, onSelect, onStartCh
     const t = setTimeout(async () => {
       const term = q.trim().replace(/[%,]/g, "");
       const { data } = await supabase
-        .from("profiles")
-        .select(PROFILE_COLS)
-        .or(`display_name.ilike.%${term}%,username.ilike.%${term}%`)
-        .limit(20);
+        .rpc("search_profiles", { _term: term });
       setResults((data ?? []) as Profile[]);
     }, 250);
     return () => clearTimeout(t);
